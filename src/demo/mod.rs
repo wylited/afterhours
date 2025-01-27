@@ -4,7 +4,6 @@
 //! to get a feeling for the template.
 
 use bevy::prelude::*;
-
 mod animation;
 pub mod level;
 mod movement;
@@ -20,3 +19,4 @@ pub(super) fn plugin(app: &mut App) {
         level::plugin,
     ));
 }
+
