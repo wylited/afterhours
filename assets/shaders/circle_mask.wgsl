@@ -18,8 +18,9 @@ struct CircleMaskMaterial {
 // Fragment shader
 @fragment
 fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
+    return vec4<f32>(0.0, 0.0, 0.0, 0.0); // Transparent outside the circle
     if (material.enabled < 0.5) {
-        return vec4<f32>(1.0, 0.0, 1.0, 1); // Transparent if mask is disabled
+        return vec4<f32>(1.0, 1.0, 1.0, 0.0); // Transparent if mask is disabled
     }
 
     let center = material.screen_size * 0.5; // Center of the screen
@@ -30,5 +31,5 @@ fn fragment(mesh: VertexOutput) -> @location(0) vec4<f32> {
         return material.color; // Render the circle
     }
 
-    return vec4<f32>(0.0, 0.0, 0.0, 1.0); // Transparent outside the circle
+    return vec4<f32>(0.0, 0.0, 0.0, 0.0); // Transparent outside the circle
 }
