@@ -2,7 +2,7 @@
 
 use bevy::{ecs::world::Command, prelude::*};
 
-use crate::demo::{player::SpawnPlayer, mask::SpawnMask};
+use crate::demo::{mask::SpawnMask, player::SpawnPlayer};
 
 pub(super) fn plugin(_app: &mut App) {
     // No setup required for this plugin.

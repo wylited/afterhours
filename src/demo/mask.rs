@@ -1,45 +1,20 @@
-use bevy::{
-    ecs::world::Command,
-    image::{ImageLoaderSettings, ImageSampler},
-    prelude::*,
-};
+use bevy::{ecs::world::Command, prelude::*};
 
-use crate::{
-    asset_tracking::LoadResource,
-    demo::{
-        animation::PlayerAnimation,
-        movement::{MovementController, ScreenWrap},
-    },
-    screens::Screen,
-    AppSet,
-};
+use crate::AppSet;
 
 pub(super) fn plugin(app: &mut App) {
-    app.add_systems(
-        Update,
-        (
-            toggle_mask.in_set(AppSet::RecordInput),
-        ),
-    );
+    app.add_systems(Update, (toggle_mask.in_set(AppSet::RecordInput),));
 }
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+#[derive(Default)]
 pub struct Mask {
     state: bool,
 }
 
-impl Default for Mask {
-    fn default() -> Self {
-        Self {
-            state: false,
-        }
-    }
-}
-
 #[derive(Debug)]
-pub struct SpawnMask {
-}
+pub struct SpawnMask {}
 
 impl Command for SpawnMask {
     fn apply(self, world: &mut World) {
@@ -56,22 +31,19 @@ fn spawn_mask(
 ) {
     let window = window.single();
 
-    let shapes = [
-        meshes.add(Rectangle::new(window.resolution.width(), window.resolution.height())),
-    ];
+    let shapes = [meshes.add(Rectangle::new(
+        window.resolution.width(),
+        window.resolution.height(),
+    ))];
 
-    for (_, shape) in shapes.into_iter().enumerate() {
+    for shape in shapes.into_iter() {
         let color = Color::srgba(0.0, 0.0, 0.0, 0.0);
 
         commands.spawn((
-            Mask {state: false},
+            Mask { state: false },
             Mesh2d(shape),
             MeshMaterial2d(materials.add(color)),
-            Transform::from_xyz(
-                0.0,
-                0.0,
-                999.0, 
-            ),
+            Transform::from_xyz(0.0, 0.0, 999.0),
         ));
     }
 }
@@ -96,4 +68,3 @@ fn toggle_mask(
         }
     }
 }
-
