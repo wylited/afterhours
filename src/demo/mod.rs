@@ -16,6 +16,7 @@ pub(super) fn plugin(app: &mut App) {
         animation::plugin,
         movement::plugin,
         player::plugin,
+        mask::plugin,
         level::plugin,
     ));
 }
