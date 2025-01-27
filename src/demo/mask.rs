@@ -1,8 +1,8 @@
 use bevy::{
     ecs::world::Command,
     prelude::*,
-    render::{render_resource::*, texture::*},
-    sprite::{Material2d, Material2dPlugin},
+    render::{mesh::{MeshVertexBufferLayout, MeshVertexBufferLayoutRef}, render_resource::*, texture::*},
+    sprite::{Material2d, Material2dKey, Material2dPlugin},
 };
 
 use crate::{
@@ -66,6 +66,20 @@ pub struct CircleMaskMaterial {
 impl Material2d for CircleMaskMaterial {
     fn fragment_shader() -> ShaderRef {
         "shaders/circle_mask.wgsl".into()
+    }
+
+    fn specialize(
+        descriptor: &mut RenderPipelineDescriptor,
+        _layout: &MeshVertexBufferLayoutRef,
+        _key: Material2dKey<Self>,
+    ) -> Result<(), SpecializedMeshPipelineError> {
+        // Enable alpha blending
+        if let Some(fragment) = &mut descriptor.fragment {
+            if let Some(target) = &mut fragment.targets[0] {
+                target.blend = Some(BlendState::ALPHA_BLENDING);
+            }
+        }
+        Ok(())
     }
 }
 
