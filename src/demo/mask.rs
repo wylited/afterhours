@@ -5,15 +5,7 @@ use bevy::{
     sprite::{Material2d, Material2dKey, Material2dPlugin},
 };
 
-use crate::{
-    asset_tracking::LoadResource,
-    demo::{
-        animation::PlayerAnimation,
-        movement::{MovementController, ScreenWrap},
-    },
-    screens::Screen,
-    AppSet,
-};
+use crate::AppSet;
 
 pub(super) fn plugin(app: &mut App) {
     app.add_plugins(Material2dPlugin::<CircleMaskMaterial>::default())
@@ -29,21 +21,13 @@ pub(super) fn plugin(app: &mut App) {
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
+#[derive(Default)]
 pub struct Mask {
     state: bool,
 }
 
-impl Default for Mask {
-    fn default() -> Self {
-        Self {
-            state: false,
-        }
-    }
-}
-
 #[derive(Debug)]
-pub struct SpawnMask {
-}
+pub struct SpawnMask {}
 
 impl Command for SpawnMask {
     fn apply(self, world: &mut World) {
