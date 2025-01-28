@@ -66,6 +66,16 @@ impl Material2d for CircleMaskMaterial {
                 target.blend = Some(BlendState::ALPHA_BLENDING);
             }
         }
+
+        // Configure depth-stencil state
+        descriptor.depth_stencil = Some(DepthStencilState {
+            format: TextureFormat::Depth32Float,
+            depth_write_enabled: false, // Disable depth writing
+            depth_compare: CompareFunction::Always, // Always pass the depth test
+            stencil: StencilState::default(),
+            bias: DepthBiasState::default(),
+        });
+
         Ok(())
     }
 }
@@ -126,24 +136,3 @@ fn toggle_mask(input: Res<ButtonInput<KeyCode>>, mut mask_query: Query<&mut Mask
         }
     }
 }
-
-// fn toggle_mask(
-//     input: Res<ButtonInput<KeyCode>>,
-//     mut materials: ResMut<Assets<ColorMaterial>>,
-//     mut controller_query: Query<(&mut Mask, &MeshMaterial2d<ColorMaterial>)>,
-// ) {
-//     if input.just_pressed(KeyCode::Space) {
-//         if let Ok((mut mask, material_handle)) = controller_query.get_single_mut() {
-//             if let Some(material) = materials.get_mut(&material_handle.0) {
-//                 // Toggle between transparent and semi-transparent
-//                 if !mask.state {
-//                     material.color = Color::srgba(0.0, 0.0, 0.0, 1.0);
-//                 } else {
-//                     material.color = Color::srgba(0.0, 0.0, 0.0, 0.0);
-//                 }
-
-//                 mask.state = !mask.state;
-//             }
-//         }
-//     }
-// }
