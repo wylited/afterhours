@@ -3,6 +3,7 @@ use bevy::{
     prelude::*,
 };
 
+
 use bevy_light_2d::prelude::*;
 
 use crate::AppSet;
@@ -36,7 +37,29 @@ impl Command for SpawnMask {
 fn spawn_mask(
     In(_config): In<SpawnMask>,
     mut commands: Commands,
+    query: Query<Entity, With<Camera2d>>, 
 ) {
+
+    if let Ok(camera_entity) = query.get_single() {
+        commands.entity(camera_entity).despawn();
+    }
+
+
+
+ 
+
+    let mut projection = OrthographicProjection::default_2d();
+    projection.scale = 1.;
+
+    commands.spawn((
+        Camera2d,
+        projection,
+        AmbientLight2d {
+            brightness: 0.0,
+            ..default()
+        },
+        IsDefaultUiCamera
+    ));
 
     commands.spawn(PointLight2d {
         intensity: 3.0,
