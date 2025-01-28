@@ -1,7 +1,11 @@
 use bevy::{
     ecs::world::Command,
     prelude::*,
-    render::{mesh::{MeshVertexBufferLayout, MeshVertexBufferLayoutRef}, render_resource::*, texture::*},
+    render::{
+        mesh::{MeshVertexBufferLayout, MeshVertexBufferLayoutRef},
+        render_resource::*,
+        texture::*,
+    },
     sprite::{Material2d, Material2dKey, Material2dPlugin},
 };
 
@@ -17,7 +21,6 @@ pub(super) fn plugin(app: &mut App) {
             ),
         );
 }
-
 
 #[derive(Component, Reflect)]
 #[reflect(Component)]
@@ -78,7 +81,10 @@ fn spawn_mask(
     window: Query<&Window>,
 ) {
     let window = window.single();
-    let shape = meshes.add(Rectangle::new(window.resolution.width(), window.resolution.height()));
+    let shape = meshes.add(Rectangle::new(
+        window.resolution.width(),
+        window.resolution.height(),
+    ));
 
     let material = materials.add(CircleMaskMaterial {
         color: Vec4::new(1.0, 0.0, 0.0, 1.0),
@@ -104,7 +110,7 @@ fn update_mask_material(
     window: Query<&Window>,
 ) {
     let window = window.single();
-    
+
     for (mask, material_handle) in mask_query.iter() {
         if let Some(material) = materials.get_mut(&material_handle.0) {
             material.enabled = if mask.state { 1.0 } else { 0.0 };
@@ -113,10 +119,7 @@ fn update_mask_material(
     }
 }
 
-fn toggle_mask(
-    input: Res<ButtonInput<KeyCode>>,
-    mut mask_query: Query<&mut Mask>,
-) {
+fn toggle_mask(input: Res<ButtonInput<KeyCode>>, mut mask_query: Query<&mut Mask>) {
     if input.just_pressed(KeyCode::Space) {
         if let Ok(mut mask) = mask_query.get_single_mut() {
             mask.state = !mask.state;
@@ -144,4 +147,3 @@ fn toggle_mask(
 //         }
 //     }
 // }
-

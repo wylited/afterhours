@@ -1,9 +1,4 @@
 //! Player sprite animation.
-//! This is based on multiple examples and may be very different for your game.
-//! - [Sprite flipping](https://github.com/bevyengine/bevy/blob/latest/examples/2d/sprite_flipping.rs)
-//! - [Sprite animation](https://github.com/bevyengine/bevy/blob/latest/examples/2d/sprite_animation.rs)
-//! - [Timers](https://github.com/bevyengine/bevy/blob/latest/examples/time/timers.rs)
-
 use bevy::prelude::*;
 use rand::prelude::*;
 use std::time::Duration;
@@ -15,9 +10,7 @@ use crate::{
 };
 
 pub(super) fn plugin(app: &mut App) {
-    // Animate and play sound effects based on controls.
-    app.register_type::<PlayerAnimation>();
-    app.add_systems(
+    app.register_type::<PlayerAnimation>().add_systems(
         Update,
         (
             update_animation_timer.in_set(AppSet::TickTimers),
@@ -33,146 +26,184 @@ pub(super) fn plugin(app: &mut App) {
     );
 }
 
-/// Update the sprite direction and animation state (idling/walking).
-fn update_animation_movement(
-    mut player_query: Query<(&MovementController, &mut Sprite, &mut PlayerAnimation)>,
-) {
-    for (controller, mut sprite, mut animation) in &mut player_query {
-        let dx = controller.intent.x;
-        if dx != 0.0 {
-            sprite.flip_x = dx < 0.0;
-        }
+#[derive(Reflect, PartialEq, Clone, Copy, Debug)]
+pub enum Direction {
+    Right = 0,
+    Up = 1,
+    Left = 2,
+    Down = 3,
+}
 
-        let animation_state = if controller.intent == Vec2::ZERO {
-            PlayerAnimationState::Idling
-        } else {
-            PlayerAnimationState::Walking
-        };
-        animation.update_state(animation_state);
+#[derive(Reflect, PartialEq, Clone, Debug)]
+pub enum AnimationType {
+    Idle(Direction),
+    Walk(Direction),
+    Sleep,
+}
+
+impl AnimationType {
+    fn get_config(&self) -> AnimationConfig {
+        match self {
+            AnimationType::Idle(_) => AnimationConfig {
+                frames: 6,
+                row_offset: 56,
+                frame_duration: Duration::from_millis(500),
+            },
+            AnimationType::Walk(_) => AnimationConfig {
+                frames: 6,
+                row_offset: 56 * 2,
+                frame_duration: Duration::from_millis(100),
+            },
+            AnimationType::Sleep => AnimationConfig {
+                frames: 6,
+                row_offset: 56 * 4,
+                frame_duration: Duration::from_millis(1000),
+            },
+        }
+    }
+
+    fn get_direction_offset(&self) -> usize {
+        match self {
+            AnimationType::Idle(dir) | AnimationType::Walk(dir) => *dir as usize,
+            AnimationType::Sleep => 0, // Sleep always faces down
+        }
     }
 }
 
-/// Update the animation timer.
+struct AnimationConfig {
+    frames: usize,
+    row_offset: usize,
+    frame_duration: Duration,
+}
+
+#[derive(Component, Reflect, Clone, Debug)]
+#[reflect(Component)]
+pub struct PlayerAnimation {
+    timer: Timer,
+    frame: usize,
+    animation_type: AnimationType,
+    current_direction: Direction,
+}
+
+impl PlayerAnimation {
+    pub fn new() -> Self {
+        Self::with_animation(AnimationType::Idle(Direction::Down))
+    }
+
+    pub fn with_animation(animation_type: AnimationType) -> Self {
+        let config = animation_type.get_config();
+        let direction = match animation_type {
+            AnimationType::Idle(dir) | AnimationType::Walk(dir) => dir,
+            AnimationType::Sleep => Direction::Down,
+        };
+        Self {
+            timer: Timer::new(config.frame_duration, TimerMode::Repeating),
+            frame: 0,
+            animation_type,
+            current_direction: direction,
+        }
+    }
+
+    pub fn update_timer(&mut self, delta: Duration) {
+        self.timer.tick(delta);
+        if self.timer.just_finished() {
+            let config = self.animation_type.get_config();
+            self.frame = (self.frame + 1) % config.frames;
+        }
+    }
+
+    pub fn update_state(&mut self, new_type: AnimationType) {
+        if self.animation_type != new_type {
+            let config = new_type.get_config();
+
+            // Keep the current direction if the new animation is not directional
+            let direction = match self.animation_type {
+                AnimationType::Idle(dir) | AnimationType::Walk(dir) => dir,
+                AnimationType::Sleep => Direction::Down,
+            };
+
+            *self = Self {
+                timer: Timer::new(config.frame_duration, TimerMode::Repeating),
+                frame: 0,
+                animation_type: new_type,
+                current_direction: direction,
+            };
+        }
+    }
+
+    pub fn changed(&self) -> bool {
+        self.timer.just_finished()
+    }
+
+    pub fn get_atlas_index(&self) -> usize {
+        let config = self.animation_type.get_config();
+        let direction_offset = self.animation_type.get_direction_offset();
+        config.row_offset + (direction_offset * config.frames) + self.frame
+    }
+}
+
+fn update_animation_movement(mut player_query: Query<(&MovementController, &mut PlayerAnimation)>) {
+    for (controller, mut animation) in &mut player_query {
+        if controller.intent != Vec2::ZERO {
+            // Only update direction if there's movement
+            let new_direction = if controller.intent.x.abs() > controller.intent.y.abs() {
+                if controller.intent.x > 0.0 {
+                    Direction::Right
+                } else {
+                    Direction::Left
+                }
+            } else {
+                if controller.intent.y > 0.0 {
+                    Direction::Up
+                } else {
+                    Direction::Down
+                }
+            };
+
+            animation.current_direction = new_direction;
+            animation.update_state(AnimationType::Walk(new_direction));
+        } else {
+            let direction = animation.current_direction.clone();
+            animation.update_state(AnimationType::Idle(direction));
+        }
+    }
+}
+
 fn update_animation_timer(time: Res<Time>, mut query: Query<&mut PlayerAnimation>) {
     for mut animation in &mut query {
         animation.update_timer(time.delta());
     }
 }
 
-/// Update the texture atlas to reflect changes in the animation.
 fn update_animation_atlas(mut query: Query<(&PlayerAnimation, &mut Sprite)>) {
     for (animation, mut sprite) in &mut query {
-        let Some(atlas) = sprite.texture_atlas.as_mut() else {
-            continue;
-        };
-        if animation.changed() {
-            atlas.index = animation.get_atlas_index();
+        if let Some(atlas) = sprite.texture_atlas.as_mut() {
+            if animation.changed() {
+                atlas.index = animation.get_atlas_index();
+            }
         }
     }
 }
 
-/// If the player is moving, play a step sound effect synchronized with the
-/// animation.
 fn trigger_step_sound_effect(
     mut commands: Commands,
     player_assets: Res<PlayerAssets>,
     mut step_query: Query<&PlayerAnimation>,
 ) {
     for animation in &mut step_query {
-        if animation.state == PlayerAnimationState::Walking
-            && animation.changed()
-            && (animation.frame == 2 || animation.frame == 5)
-        {
-            let rng = &mut rand::thread_rng();
-            let random_step = player_assets.steps.choose(rng).unwrap();
-            commands.spawn((
-                AudioPlayer(random_step.clone()),
-                PlaybackSettings::DESPAWN,
-                SoundEffect,
-            ));
-        }
-    }
-}
-
-/// Component that tracks player's animation state.
-/// It is tightly bound to the texture atlas we use.
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-pub struct PlayerAnimation {
-    timer: Timer,
-    frame: usize,
-    state: PlayerAnimationState,
-}
-
-#[derive(Reflect, PartialEq)]
-pub enum PlayerAnimationState {
-    Idling,
-    Walking,
-}
-
-impl PlayerAnimation {
-    /// The number of idle frames.
-    const IDLE_FRAMES: usize = 2;
-    /// The duration of each idle frame.
-    const IDLE_INTERVAL: Duration = Duration::from_millis(500);
-    /// The number of walking frames.
-    const WALKING_FRAMES: usize = 6;
-    /// The duration of each walking frame.
-    const WALKING_INTERVAL: Duration = Duration::from_millis(50);
-
-    fn idling() -> Self {
-        Self {
-            timer: Timer::new(Self::IDLE_INTERVAL, TimerMode::Repeating),
-            frame: 0,
-            state: PlayerAnimationState::Idling,
-        }
-    }
-
-    fn walking() -> Self {
-        Self {
-            timer: Timer::new(Self::WALKING_INTERVAL, TimerMode::Repeating),
-            frame: 0,
-            state: PlayerAnimationState::Walking,
-        }
-    }
-
-    pub fn new() -> Self {
-        Self::idling()
-    }
-
-    /// Update animation timers.
-    pub fn update_timer(&mut self, delta: Duration) {
-        self.timer.tick(delta);
-        if !self.timer.finished() {
-            return;
-        }
-        self.frame = (self.frame + 1)
-            % match self.state {
-                PlayerAnimationState::Idling => Self::IDLE_FRAMES,
-                PlayerAnimationState::Walking => Self::WALKING_FRAMES,
-            };
-    }
-
-    /// Update animation state if it changes.
-    pub fn update_state(&mut self, state: PlayerAnimationState) {
-        if self.state != state {
-            match state {
-                PlayerAnimationState::Idling => *self = Self::idling(),
-                PlayerAnimationState::Walking => *self = Self::walking(),
+        if let AnimationType::Walk(_) = animation.animation_type {
+            if !animation.changed() || !(animation.frame == 2 || animation.frame == 5) {
+                continue;
             }
-        }
-    }
 
-    /// Whether animation changed this tick.
-    pub fn changed(&self) -> bool {
-        self.timer.finished()
-    }
-
-    /// Return sprite index in the atlas.
-    pub fn get_atlas_index(&self) -> usize {
-        match self.state {
-            PlayerAnimationState::Idling => self.frame,
-            PlayerAnimationState::Walking => 6 + self.frame,
+            let rng = &mut rand::thread_rng();
+            if let Some(random_step) = player_assets.steps.choose(rng) {
+                commands.spawn((
+                    AudioPlayer(random_step.clone()),
+                    PlaybackSettings::DESPAWN,
+                    SoundEffect,
+                ));
+            }
         }
     }
 }

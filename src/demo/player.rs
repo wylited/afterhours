@@ -57,7 +57,7 @@ fn spawn_player(
     // can specify which section of the image we want to see. We will use this
     // to animate our player character. You can learn more about texture atlases in
     // this example: https://github.com/bevyengine/bevy/blob/latest/examples/2d/texture_atlas.rs
-    let layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 6, 2, Some(UVec2::splat(1)), None);
+    let layout = TextureAtlasLayout::from_grid(UVec2::new(16, 32), 56, 20, None, None);
     let texture_atlas_layout = texture_atlas_layouts.add(layout);
     let player_animation = PlayerAnimation::new();
 
@@ -65,14 +65,14 @@ fn spawn_player(
         Name::new("Player"),
         Player,
         Sprite {
-            image: player_assets.ducky.clone(),
+            image: player_assets.male.clone(),
             texture_atlas: Some(TextureAtlas {
                 layout: texture_atlas_layout.clone(),
                 index: player_animation.get_atlas_index(),
             }),
             ..default()
         },
-        Transform::from_scale(Vec2::splat(2.0).extend(1.0)),
+        Transform::from_scale(Vec2::splat(4.0).extend(1.0)),
         MovementController {
             max_speed: config.max_speed,
             ..default()
@@ -118,13 +118,13 @@ pub struct PlayerAssets {
     // This #[dependency] attribute marks the field as a dependency of the Asset.
     // This means that it will not finish loading until the labeled asset is also loaded.
     #[dependency]
-    pub ducky: Handle<Image>,
+    pub male: Handle<Image>,
     #[dependency]
     pub steps: Vec<Handle<AudioSource>>,
 }
 
 impl PlayerAssets {
-    pub const PATH_DUCKY: &'static str = "images/ducky.png";
+    pub const PATH_MALE: &'static str = "images/player/male.png";
     pub const PATH_STEP_1: &'static str = "audio/sound_effects/step1.ogg";
     pub const PATH_STEP_2: &'static str = "audio/sound_effects/step2.ogg";
     pub const PATH_STEP_3: &'static str = "audio/sound_effects/step3.ogg";
@@ -135,8 +135,8 @@ impl FromWorld for PlayerAssets {
     fn from_world(world: &mut World) -> Self {
         let assets = world.resource::<AssetServer>();
         Self {
-            ducky: assets.load_with_settings(
-                PlayerAssets::PATH_DUCKY,
+            male: assets.load_with_settings(
+                PlayerAssets::PATH_MALE,
                 |settings: &mut ImageLoaderSettings| {
                     // Use `nearest` image sampling to preserve the pixel art style.
                     settings.sampler = ImageSampler::nearest();

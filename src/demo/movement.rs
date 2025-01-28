@@ -74,7 +74,7 @@ fn apply_screen_wrap(
     let Ok(window) = window_query.get_single() else {
         return;
     };
-    let size = window.size() + 256.0;
+    let size = window.size() + 128.0;
     let half_size = size / 2.0;
     for mut transform in &mut wrap_query {
         let position = transform.translation.xy();
