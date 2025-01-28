@@ -17,6 +17,7 @@ tracing = { version = "0.1", features = [
     "max_level_debug",
     "release_max_level_warn",
 ] }
+bevy_light_2d = "0.5.0"
 
 [features]
 default = [
